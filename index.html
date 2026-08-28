@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meki Deploy</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #050505;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      background: #111;
+      border: 1px solid #292929;
+      border-radius: 22px;
+      padding: 28px;
+      box-shadow: 0 20px 70px rgba(0,0,0,.5);
+    }
+
+    .logo {
+      width: 70px;
+      height: 70px;
+      margin: 0 auto 18px;
+      border-radius: 18px;
+      background: white;
+      color: black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      font-weight: bold;
+    }
+
+    h1 {
+      text-align: center;
+      margin: 0;
+      font-size: 30px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #888;
+      margin: 10px 0 28px;
+    }
+
+    label {
+      display: block;
+      margin: 15px 0 8px;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      border-radius: 11px;
+      border: 1px solid #333;
+      outline: none;
+      background: #191919;
+      color: white;
+    }
+
+    input:focus {
+      border-color: #777;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 22px;
+      padding: 15px;
+      border: none;
+      border-radius: 11px;
+      background: white;
+      color: black;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #ddd;
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: wait;
+    }
+
+    #status {
+      display: none;
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 11px;
+      background: #191919;
+      color: #bbb;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    #result {
+      display: none;
+      margin-top: 18px;
+      padding: 16px;
+      border-radius: 11px;
+      background: #191919;
+      text-align: center;
+    }
+
+    #result a {
+      color: white;
+      font-weight: bold;
+      word-break: break-all;
+    }
+
+    .info {
+      margin-top: 22px;
+      color: #666;
+      font-size: 12px;
+      text-align: center;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="logo">M</div>
+
+  <h1>Meki Deploy</h1>
+
+  <p class="subtitle">
+    Upload HTML dan deploy website dengan mudah.
+  </p>
+
+  <label>Nama Project</label>
+
+  <input
+    id="projectName"
+    type="text"
+    maxlength="50"
+    placeholder="contoh: website-saya"
+  >
+
+  <label>File HTML</label>
+
+  <input
+    id="htmlFile"
+    type="file"
+    accept=".html,text/html"
+  >
+
+  <button id="deployButton">
+    ▲ Deploy Sekarang
+  </button>
+
+  <div id="status"></div>
+
+  <div id="result">
+    <div>✅ Website berhasil dibuat!</div>
+    <br>
+    <a id="websiteUrl" href="#" target="_blank">
+      Buka Website
+    </a>
+  </div>
+
+  <div class="info">
+    Maksimal ukuran file: 2 MB.<br>
+    Jangan upload password, token, API key, atau data pribadi.
+  </div>
+
+</div>
+
+<script>
+  const projectName = document.getElementById("projectName");
+  const htmlFile = document.getElementById("htmlFile");
+  const deployButton = document.getElementById("deployButton");
+
+  const statusBox = document.getElementById("status");
+  const resultBox = document.getElementById("result");
+  const websiteUrl = document.getElementById("websiteUrl");
+
+  function showStatus(message) {
+    statusBox.style.display = "block";
+    statusBox.textContent = message;
+  }
+
+  deployButton.addEventListener("click", async () => {
+
+    resultBox.style.display = "none";
+
+    const name = projectName.value.trim();
+    const file = htmlFile.files[0];
+
+    if (!name) {
+      showStatus("❌ Masukkan nama project.");
+      return;
+    }
+
+    if (!file) {
+      showStatus("❌ Pilih file HTML terlebih dahulu.");
+      return;
+    }
+
+    if (!file.name.toLowerCase().endsWith(".html")) {
+      showStatus("❌ File harus berformat .html.");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      showStatus("❌ File terlalu besar. Maksimal 2 MB.");
+      return;
+    }
+
+    deployButton.disabled = true;
+    deployButton.textContent = "⏳ Deploying...";
+
+    showStatus("📤 Mengupload dan membuat deployment...");
+
+    try {
+
+      const html = await file.text();
+
+      const response = await fetch("/api/deploy", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          projectName: name,
+          html: html
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Deployment gagal."
+        );
+      }
+
+      showStatus("✅ Deployment berhasil!");
+
+      websiteUrl.href = data.url;
+      websiteUrl.textContent = data.url;
+
+      resultBox.style.display = "block";
+
+    } catch (error) {
+
+      showStatus("❌ " + error.message);
+
+    } finally {
+
+      deployButton.disabled = false;
+      deployButton.textContent = "▲ Deploy Sekarang";
+
+    }
+
+  });
+</script>
+
+</body>
+</html>
