@@ -1,3 +1,6 @@
 {
-  "version": 2
+  "routes": [
+    { "src": "/google7bdfcb55d7a3697.html", "dest": "/google7bdfcb55d7a3697.html" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
 }
